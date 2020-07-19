@@ -1,0 +1,39 @@
+---
+title: "Explore Road Angles"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3  
+    number_sections: true  
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = 'hide')
+les_packages = sapply(c('tidyverse','data.table','DT','ggthemes','showtext'), FUN=require, character.only=TRUE)
+font_add_google(name = "Prompt", family = "Prompt")
+showtext_auto()
+```
+
+```{r}
+df = fread('data/road_angle.csv',data.table = FALSE) %>%
+  select(Long_ID,TESSABAN,length,BEARING) %>% mutate(bear_round=round(BEARING)) %>%
+  mutate(bear_round = ifelse(bear_round==360,0,bear_round)) %>%
+  group_by(Long_ID,TESSABAN,bear_round) %>% summarise(sum_length=sum(length)) 
+```
+
+```{r}
+save_polar = function(long_id){
+d = df %>% filter(Long_ID==long_id)
+g = ggplot(d,aes(x=bear_round,y=sum_length)) + geom_col() + theme_minimal() +
+  scale_x_continuous(breaks = seq(0,359,45)) +
+  theme(axis.text.y=element_blank(),text=element_text(family="Prompt"),
+        plot.title = element_text(hjust = 0.5,size = 24)) +
+  xlab('') + ylab('') +
+  ggtitle(d$TESSABAN) +
+  coord_polar() 
+ggsave(paste0('polars/',long_id,'.png'), plot=g)
+}
+sapply(unique(df$Long_ID),save_polar)
+```
